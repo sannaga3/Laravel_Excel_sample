@@ -14,8 +14,8 @@ use App\Http\Controllers\UserController;
 |
 */
 
+Route::get('users/export', [UserController::class, 'export'])->name('users.export');
 Route::resource('/users', UserController::class);
-
 
 Route::get('/', function () {
     return view('welcome');

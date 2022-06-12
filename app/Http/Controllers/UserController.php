@@ -7,6 +7,8 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Validation\Rule;
+use App\Exports\UsersExport;
+use Maatwebsite\Excel\Facades\Excel;
 
 class UserController extends Controller
 {
@@ -134,5 +136,11 @@ class UserController extends Controller
         }
 
         return $validator;
+    }
+
+    public function export()
+    {
+        // new UsersExport では headings -> collection の順番で呼び出す
+        return Excel::download(new UsersExport, 'users.xlsx'); // ダウンロード先を指定しなければデフォルトはPCのダウンロード
     }
 }

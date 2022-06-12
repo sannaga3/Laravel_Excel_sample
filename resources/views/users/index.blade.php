@@ -1,5 +1,6 @@
 <h1>ユーザー一覧</h1>
 <a href="{{ route('users.create') }}">新規追加</a>
+<a href="{{ route('users.export') }}">excel出力</a>
 
 <table>
     <tr>
