@@ -4,16 +4,21 @@ namespace App\Exports;
 
 use App\Models\User;
 use Illuminate\Support\Collection;
-use Maatwebsite\Excel\Concerns\FromCollection;   // レコード一覧の型設定
-use Maatwebsite\Excel\Concerns\WithColumnWidths; // カラムの幅設定
-use Maatwebsite\Excel\Concerns\WithHeadings;     // ヘッダーの表示設定
-use Maatwebsite\Excel\Concerns\WithMapping;      // レコード一覧の表示設定
+use Maatwebsite\Excel\Concerns\FromCollection;    // レコード一覧の型設定
+use Maatwebsite\Excel\Concerns\WithColumnWidths;  // カラムの幅設定
+use Maatwebsite\Excel\Concerns\WithHeadings;      // ヘッダーの表示設定
+use Maatwebsite\Excel\Concerns\WithMapping;       // レコード一覧の表示設定
 // use Maatwebsite\Excel\Concerns\ShouldAutoSize; // implementsに指定するだけで自動調整してくれるが、日本語(マルチバイト文字)に対応してないかも。column_max_lengths関数で自動調整
+use Maatwebsite\Excel\Concerns\WithStyles;        // スタイル設定
+use PhpOffice\PhpSpreadsheet\Worksheet\Worksheet; // ワークシートを変数$sheetで扱えるようにする
+use PhpOffice\PhpSpreadsheet\Style\Border;
+use PhpOffice\PhpSpreadsheet\Style\Alignment;
+use PhpOffice\PhpSpreadsheet\Style\Fill;
 
-class UsersExport implements FromCollection, WithHeadings, WithColumnWidths, WithMapping
+class UsersExport implements FromCollection, WithHeadings, WithColumnWidths, WithMapping, WithStyles
 {
-    protected array $headers; // ヘッダー
-    protected collection $rows; // レコード一覧
+    protected array $headers;            // ヘッダーの値
+    protected collection $rows;          // レコード一覧
     protected array $column_max_lengths; // 各カラムの最大文字数をもつ配列
 
     public function __construct()
@@ -116,5 +121,73 @@ class UsersExport implements FromCollection, WithHeadings, WithColumnWidths, Wit
         }, $max_lengths);
 
         return $adjusted_max_lengths;
+    }
+
+    // スタイルの設定
+    public function styles(Worksheet $sheet)
+    {
+        $last_row = count($this->rows) + 1;                 // 最後の行を取得
+        $last_column_str = chr(count($this->header) + 64);  // 最後のカラムのアルファベットを取得
+        $last_cell = $last_column_str . strval($last_row);  // 最後のセルを取得
+
+        // // A1から最後のセルまで格子状に罫線を引く。allBordersは使えないっぽい。下記のように２次元配列でないと各行の設定ができなさそう
+        // $sheet->getStyle('A1:' . $last_cell)->getBorders()->getInside()->setBorderStyle(Border::BORDER_THIN);
+        // $sheet->getStyle('A1:' . $last_cell)->getBorders()->getOutline()->setBorderStyle(Border::BORDER_THIN);
+
+        //  各行に下線を引く(各セルに対して設定する)。 i => column、j => row
+        for ($i = 1; $i <= count($this->header); $i++) {
+            for ($j = 1; $j <= $last_row; $j++) {
+                // 1行目だけ下線を太く、それ以外は細く設定
+                if ($j === 1) {
+                    $sheet->getStyle(chr($i + 64) . strval($j))->getBorders()->getBottom()->setBorderStyle(Border::BORDER_THICK);
+                } else {
+                    $sheet->getStyle(chr($i + 64) . strval($j))->getBorders()->getBottom()->setBorderStyle(Border::BORDER_THIN);
+                }
+            }
+        }
+        // 上記の範囲の外側に囲い線をつける
+        $sheet->getStyle('A1:' . $last_cell)->getBorders()->getOutline()->setBorderStyle(Border::BORDER_THIN);
+
+        // 各行の設定
+        for ($i = 1; $i <= $last_row; $i++) {
+            // セルの高さを設定(getRowDimensionは範囲指定できない)
+            if ($i === 1) {
+                $sheet->getRowDimension(strval($i))->setRowHeight(25);
+            } else {
+                $sheet->getRowDimension(strval($i))->setRowHeight(20);
+            }
+
+            // 背景色指定
+            if ($i % 2 === 1) {
+                $sheet->getStyle('A' . $i . ':' . $last_column_str . $i)->getFill()->setFillType(Fill::FILL_SOLID)->getStartColor()->setRGB('ffffe0'); // 薄い黄色
+            } else {
+                $sheet->getStyle('A' . $i . ':' . $last_column_str . $i)->getFill()->setFillType(Fill::FILL_SOLID)->getStartColor()->setRGB('fffacd'); // 少し濃い黄色
+            }
+        }
+
+        // 共通のフォント設定(日本語と英語が混ざってると上手く適用されないかも？)
+        $sheet->getParent()->getDefaultStyle()->getFont()->setName('Arial');
+
+        // 文字サイズ設定
+        $sheet->getStyle('A1:' . $last_column_str . '1')->getFont()->setSize(12); // １行目
+        $sheet->getStyle('A2:' . $last_cell)->getFont()->setSize(11);             // それ以外の範囲
+
+        // ヘッダーを太文字設定
+        $sheet->getStyle('A1:' . $last_column_str . '1')->getFont()->setBold(true);
+
+        // テーブル全体の高さを中間揃え
+        $sheet->getStyle('A1:' . $last_cell)->getAlignment()->setVertical(Alignment::VERTICAL_CENTER);
+
+        // 各セルの値を左寄せ
+        $sheet->getStyle('A1:' . $last_cell)->getAlignment()->setHorizontal(Alignment::HORIZONTAL_LEFT);
+
+        // グリッドの表示
+        $sheet->setShowGridlines(true);
+
+        // シート名設定
+        $sheet->setTitle('ユーザー一覧');
+
+        // テーブル全体にオートフィルターを適用
+        $sheet->setAutoFilter('A1:' . $last_cell);
     }
 }
