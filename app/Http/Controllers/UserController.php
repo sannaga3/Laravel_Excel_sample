@@ -9,6 +9,7 @@ use Illuminate\Support\Facades\Validator;
 use Illuminate\Validation\Rule;
 use App\Exports\UsersExport;
 use Maatwebsite\Excel\Facades\Excel;
+use Carbon\Carbon;
 
 class UserController extends Controller
 {
@@ -138,9 +139,11 @@ class UserController extends Controller
         return $validator;
     }
 
-    public function export()
+    public function export(Request $request)
     {
-        // new UsersExport では headings -> collection の順番で呼び出す
-        return Excel::download(new UsersExport, 'users.xlsx'); // ダウンロード先を指定しなければデフォルトはPCのダウンロード
+        $date = Carbon::today('Asia/Tokyo')->format('Y-m-d_');
+        if ($request->exportType === "excel")
+            return Excel::download(new UsersExport, $date . 'users.xlsx'); // new UsersExport では headings -> collection の順番で呼び出す。ダウンロード先を指定しなければデフォルトはPCのダウンロード
+        return Excel::download(new UsersExport, $date . 'users.csv');
     }
 }

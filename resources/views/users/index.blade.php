@@ -1,6 +1,10 @@
 <h1>ユーザー一覧</h1>
 <a href="{{ route('users.create') }}">新規追加</a>
-<a href="{{ route('users.export') }}">excel出力</a>
+<form action="{{ route('users.export') }}" method="POST">
+    @csrf
+    <button type="submit" name="exportType" value="csv">CSV出力</button>
+    <button type="submit" name="exportType" value="excel">Excel出力</button>
+</form>
 
 <table>
     <tr>
