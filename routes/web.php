@@ -15,6 +15,8 @@ use App\Http\Controllers\UserController;
 */
 
 Route::post('users/export', [UserController::class, 'export'])->name('users.export');
+Route::get('users/import/index', [UserController::class, 'importIndex'])->name('users.import.index');
+Route::post('users/import/store', [UserController::class, 'importStore'])->name('users.import.store');
 Route::resource('/users', UserController::class);
 
 Route::get('/', function () {

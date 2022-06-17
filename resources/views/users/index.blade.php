@@ -1,5 +1,6 @@
 <h1>ユーザー一覧</h1>
 <a href="{{ route('users.create') }}">新規追加</a>
+<a href="{{ route('users.import.index') }}">ファイル入力</a>
 <form action="{{ route('users.export') }}" method="POST">
     @csrf
     <button type="submit" name="exportType" value="csv">CSV出力</button>

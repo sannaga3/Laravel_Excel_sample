@@ -10,6 +10,8 @@ use Illuminate\Validation\Rule;
 use App\Exports\UsersExport;
 use Maatwebsite\Excel\Facades\Excel;
 use Carbon\Carbon;
+use App\Imports\UsersImport;
+use Exception;
 
 class UserController extends Controller
 {
@@ -145,5 +147,32 @@ class UserController extends Controller
         if ($request->exportType === "excel")
             return Excel::download(new UsersExport, $date . 'users.xlsx'); // new UsersExport では headings -> collection の順番で呼び出す。ダウンロード先を指定しなければデフォルトはPCのダウンロード
         return Excel::download(new UsersExport, $date . 'users.csv');
+    }
+
+    public function importIndex()
+    {
+        return view('users.import_index');
+    }
+
+    public function importStore(Request $request)
+    {
+        try {
+            $file = $request->file('csvFile');
+            $params = $request->request->all();
+
+            // 登録前の時点でのユーザーの数を取得。countが０から始まる為 +1
+            $before_last_id = User::all()->last()->id;
+
+            Excel::import(new UsersImport($params), $file);
+
+            // 再度最後のユーザーidを取得し、新規登録したユーザーのみをviewに返す
+            $after_last_id = User::all()->last()->id;
+            $users = User::whereBetween('id', [$before_last_id + 1, $after_last_id])->get();
+
+            return view('users.import_index', compact('users'));
+        } catch (Exception $e) {
+            $error = $e->getMessage();
+            return view('users.import_index', compact('error'));
+        }
     }
 }
